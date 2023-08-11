@@ -1,15 +1,14 @@
 import { useNavigate } from "react-router-dom"
 import useStore from "../store"
-import { io } from "socket.io-client"
-import parser from "socket.io-msgpack-parser"
 import { useState } from "preact/hooks"
 
 export default function () {
   const [name, setName] = useState("")
+  const [code, setCode] = useState("")
 
   const navigate = useNavigate()
 
-  const setSocket = useStore(state => state.setSocket)
+  const { socket, setName: setSavedName, setOwner, setRoomId } = useStore()
 
   const createRoom = async () => {
     const res = await fetch("/api/rooms", {
@@ -22,17 +21,31 @@ export default function () {
 
     const { id } = await res.json()
 
-    const socket = io("/", {
-      parser,
-      rejectUnauthorized: false
+    setRoomId(id)
+    setSavedName(name)
+    setOwner(true)
+    socket.emit("join", name, id)
+    navigate(`/room/${id}/lobby`)
+  }
+
+  const joinRoom = async () => {
+    const res = await fetch(`/api/rooms/${code}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ name })
     })
 
-    setSocket(socket)
+    const { users } = await res.json()
 
-    socket.on("connect", () => {
-      socket.emit("join", id)
-      navigate(`/room/${id}/lobby`)
-    })
+    if (users) {
+      setRoomId(code)
+      setSavedName(name)
+      setOwner(false)
+      socket.emit("join", name, code)
+      navigate(`/room/${code}/lobby?users=${JSON.stringify(users.filter((user: any) => user.name !== name))}`)
+    }
   }
 
   return (
@@ -48,9 +61,9 @@ export default function () {
           <label className="label">
             <span className="label-text">Código</span>
           </label>
-          <input type="number" className="input input-bordered w-full max-w-sm" />
+          <input type="number" className="input input-bordered w-full max-w-sm" value={code} onChange={e => setCode(e.currentTarget.value)} />
         </div>
-        <button class="btn w-full mt-5">Entrar</button>
+        <button class="btn w-full mt-5" onClick={joinRoom}>Entrar</button>
         <div className="divider">OU</div>
         <button class="btn btn-primary w-full" onClick={createRoom}>Criar sala</button>
       </div>

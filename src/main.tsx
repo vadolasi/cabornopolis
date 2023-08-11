@@ -1,6 +1,7 @@
 import { render } from "preact"
 import { Suspense } from "preact/compat"
 import { BrowserRouter as Router, useRoutes } from "react-router-dom"
+import { Toaster } from "react-hot-toast"
 import "@unocss/reset/tailwind.css"
 import "virtual:uno.css"
 import routes from "~react-pages"
@@ -16,6 +17,7 @@ const App = () => {
 render(
   <Router>
     <App />
+    <Toaster />
   </Router>,
   document.getElementById("app")!
 )
